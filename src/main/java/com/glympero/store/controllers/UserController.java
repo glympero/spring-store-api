@@ -4,6 +4,7 @@ import com.glympero.store.dtos.ChangePasswordRequest;
 import com.glympero.store.dtos.RegisterUserRequest;
 import com.glympero.store.dtos.UpdateUserRequest;
 import com.glympero.store.dtos.UserDto;
+import com.glympero.store.entities.Role;
 import com.glympero.store.mappers.UserMapper;
 import com.glympero.store.repositories.UserRepository;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -24,6 +26,7 @@ import java.util.Set;
 public class UserController {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("")
     public Iterable<UserDto> getAllUsers(
@@ -59,7 +62,10 @@ public class UserController {
         }
 
         var user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(Role.USER); //this can be done one the mapper but its safer as its a role and its important
         userRepository.save(user);
+
         var userDto =  userMapper.toDto(user);
         var uri = uriBuilder.path("/users/{id}").buildAndExpand(user.getId()).toUri();
         return ResponseEntity.created(uri).body(userDto);
