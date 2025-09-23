@@ -29,13 +29,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         var token = authHeader.replace("Bearer ", "");
-        if (!jwtService.validateToken(token)) {
+        var jwt = jwtService.parse(token);
+        if (jwt == null || jwt.isExpired()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        var userId = jwtService.getUserIdFromToken(token);
-        var role = jwtService.getRoleFromToken(token);
+        var userId = jwt.getUserId();
+        var role = jwt.getRole();
         var authentication = new UsernamePasswordAuthenticationToken(
                 userId,
                 null, //creds - not valid here

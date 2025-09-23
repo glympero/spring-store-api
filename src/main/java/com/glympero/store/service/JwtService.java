@@ -6,7 +6,6 @@ import com.glympero.store.entities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Date;
@@ -25,50 +24,30 @@ public class JwtService {
                 .getPayload();
     }
 
-    private String generateToken(User user, int tokenExpiration) {
-
-        return Jwts.builder()
-                .subject(user.getId().toString())
-                .claim("email", user.getEmail())
-                .claim("name", user.getName())
-                .claim("role", user.getRole())
+    private Jwt generateToken(User user, int tokenExpiration) {
+        var claims = Jwts.claims().subject(user.getId().toString())
+                .add("email", user.getEmail())
+                .add("name", user.getName())
+                .add("role", user.getRole())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * tokenExpiration))
-                .signWith(jwtConfig.getSecretKey()).compact();
+                .build();
+
+        return new Jwt(claims, jwtConfig.getSecretKey());
     }
 
-    public String generateAccessToken(User user) {
+    public Jwt generateAccessToken(User user) {
         return generateToken(user, jwtConfig.getAccessTokenExpiration());
     }
 
-    public String generateRefreshToken(User user) {
+    public Jwt generateRefreshToken(User user) {
         return generateToken(user, jwtConfig.getRefreshTokenExpiration() );
     }
 
-
-
-    public boolean validateToken(String token) {
+    public Jwt parse(String token) {
         try {
             var claims = getClaims(token);
-            return claims.getExpiration().after(new Date());
-        } catch (JwtException e) {
-            return false;
-        }
-    }
-
-    public Long getUserIdFromToken(String token) {
-        try {
-            var claims = getClaims(token);
-            return Long.valueOf(claims.getSubject());
-        } catch (JwtException e) {
-            return null;
-        }
-    }
-
-    public Role getRoleFromToken(String token) {
-        try {
-            var claims = getClaims(token);
-            return Role.valueOf((String) claims.get("role"));
+            return new Jwt(claims, jwtConfig.getSecretKey());
         } catch (JwtException e) {
             return null;
         }
